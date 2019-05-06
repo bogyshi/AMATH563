@@ -13,16 +13,20 @@ from sklearn.linear_model import Ridge
 from scipy.sparse.linalg import lsmr
 from sklearn import linear_model
 from decimal import Decimal
+
 filePath = '/home/bdvr/Documents/GitHub/AMATH563/hw1/'
 exploreIncorrect = False
 debug = False
 
 def read_idx(filename):
+    '''
+    reads in the binary input. Stolen from : https://gist.github.com/tylerneylon/ce60e8a06e7506ac45788443f7269e40
+    '''
     with open(filename, 'rb') as f:
         zero, data_type, dims = struct.unpack('>HBB', f.read(4))
         shape = tuple(struct.unpack('>I', f.read(4))[0] for d in range(dims))
         return np.frombuffer(f.read(), dtype=np.uint8).reshape(shape)
-#the above stolen from here https://gist.github.com/tylerneylon/ce60e8a06e7506ac45788443f7269e40
+
 def loss_fn(X, Y, beta):
     return cp.norm(cp.matmul(X, beta) - Y, 2)**2
 
@@ -30,9 +34,15 @@ def loss_fn_l1(X, Y, beta):
     return cp.norm1(cp.matmul(X, beta) - Y)
 
 def regularizer(beta):
+    '''
+    not used, was used to explore cvxpy
+    '''
     return cp.pnorm(beta, p=2)**2
 
 def objective_fn(X, Y, beta, lambd,oneOrTwo):
+    '''
+    not used, was used to explore cvxpy
+    '''
     if(oneOrTwo==2):
         return loss_fn(X, Y, beta) + lambd * regularizer(beta)
     else:
@@ -42,6 +52,9 @@ def mse(X, Y, beta):
     return (1.0 / X.shape[0]) * loss_fn(X, Y, beta).value
 #the above four functions have been stolen from here https://www.cvxpy.org/examples/machine_learning/ridge_regression.html
 def cvxExample(m,n):
+    '''
+    not used, was used to explore cvxpy
+    '''
     np.random.seed(1)
     A = np.random.randn(m, n)
     b = np.random.randn(m)
@@ -59,6 +72,9 @@ def cvxExample(m,n):
     return(x.value)
 
 def plotGridStyle(data,type,number,filename = None,save=False):
+    '''
+    plots and saves the weight vector for a given model number and penalty
+    '''
     plt.clf()
     plt.title(type+' ' + str(number) + ' weights')
     plt.imshow(data,aspect='auto', cmap='gray')
@@ -69,6 +85,9 @@ def plotGridStyle(data,type,number,filename = None,save=False):
         plt.show()
 
 def reshapeSols(sol,penalty,type,filename = None,save=False):
+    '''
+    part of the model fitting. Calls the plotGridStyle function and reshapes a 784x1 to 28x28
+    '''
     counter = 0
     getcol = np.array(sol[0,:])
     depth = len(getcol)
@@ -83,6 +102,9 @@ def reshapeSols(sol,penalty,type,filename = None,save=False):
         counter+=1
 
 def getThisNumber(train,labels,number):
+    '''
+    reshapes output arrays for binary classification task
+    '''
     counter = 0
     size = len(labels)
     toFilter = np.zeros((size,1))
@@ -93,6 +115,9 @@ def getThisNumber(train,labels,number):
     return toFilter #https://stackoverflow.com/questions/44142173/how-can-a-numpy-array-of-booleans-be-used-to-remove-filter-rows-of-another-numpy
 
 def simpleSolutionAXB(train,labels,oneOrTwo,penalty):
+    '''
+    not used
+    '''
     np.random.seed(1)
     rows = train.shape[0]
     cols = train.shape[1]
@@ -108,6 +133,9 @@ def simpleSolutionAXB(train,labels,oneOrTwo,penalty):
     return(x.value)
 
 def cvxoptAttempt(train,labels):
+    '''
+    defunct
+    '''
     A = cx.matrix(train)
     B = cx.matrix(labels)
     x = variable()
@@ -115,6 +143,9 @@ def cvxoptAttempt(train,labels):
     sol = holdsol.solve()
     #print(sol['x'])
 def reshapeLabels(numbers):
+    '''
+    reshapes output when first reading in the data
+    '''
     numEntries = len(numbers)
     result = np.zeros([10,numEntries])
     i=0
@@ -124,6 +155,9 @@ def reshapeLabels(numbers):
     return result
 
 def reshapeLeastSquareRes(data):
+    '''
+    unused, was used to gauge accuracy at one point
+    '''
     res = np.ones([784,10])
     counter = 0
     for i in data:
@@ -134,34 +168,61 @@ def reshapeLeastSquareRes(data):
     return res
 
 def saveData(data,filename):
+    '''
+    saves numpy array, usually a weight vector
+    '''
     np.save(filename,data)
 
 def calcError(A,b,x,ord=None,axis=None):
+    '''
+    used to compute MSE
+    '''
     if(axis is None):
         return np.linalg.norm(b-A.dot(x),ord=ord) #https://docs.scipy.org/doc/numpy/reference/generated/numpy.linalg.norm.html
     else:
         return np.linalg.norm(b-A.dot(x),ord=ord,axis=axis)
 
 def linAlgSol(A,b):
+    '''
+    used to calculate least squares solution
+    '''
     x = np.linalg.lstsq(A,b)[0] #https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/numpy.linalg.lstsq.html
     return x
 
 def pInvSol(A,b):
+    '''
+    unused
+    solves least squares using pseudo inverse
+    '''
     pinv = (np.linalg.pinv(A)) #https://docs.scipy.org/doc/numpy/reference/generated/numpy.linalg.pinv.html
     x= pinv.dot(b)
     return x
 
 def regLstSqr(A,b,penalty):
+    '''
+    sklearns ridge regression Regularized Least Squares function used to solve our model.
+    https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html
+    minimizes: ||y - Xw||^2_2 + alpha * ||w||^2_2
+    '''
     clf=Ridge(alpha=penalty,solver='svd')
     clf.fit(A,b)
     return clf.coef_
 
 def lasso(A,b,penalty):
+    '''
+    sklearns lasso regression function used to solve our model.
+    https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Lasso.html
+    minimizes: (1 / (2 * n_samples)) * ||y - Xw||^2_2 + alpha * ||w||_1
+    note the averaging term of 1/2*n. Influences our penalty
+    '''
     clf = linear_model.Lasso(alpha=penalty)
     clf.fit(A,b)
     return (clf.coef_)
 
 def createBar(sol,size,title,save,fileLoc,penalty,type,ext=''):
+    '''
+    plots the magnitude of weights.
+    '''
     strpenalty = str(penalty).replace('.','_')
 
     if(type == 'lasso'):
@@ -191,6 +252,9 @@ def createBar(sol,size,title,save,fileLoc,penalty,type,ext=''):
             plt.savefig(fileExt)
 
 def averageClassificationError(input,output,x,isMult = False,num=0):
+    '''
+    implements algorithm 1 highlighted in the paper for the binary classification task.
+    '''
     res = input.dot(x)
     trueSize=0
     counter = 0
@@ -204,6 +268,9 @@ def averageClassificationError(input,output,x,isMult = False,num=0):
     return correct/size
 
 def batchClassificationError(input,output,x):
+    '''
+    Implements algorithm one for the batch trained case
+    '''
     res = input.dot(x)
     size = len(output)
     correct = 0
@@ -220,6 +287,9 @@ def batchClassificationError(input,output,x):
 
 
 def createDirectories(path):
+    '''
+    created directories to store results
+    '''
     try:
         os.mkdir(path)
     except OSError:
@@ -231,6 +301,10 @@ def createDirectories(path):
     #return lsmr(A=A,b=b,damp=penalty)[0]https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Lasso.html
 
 def trainData(smallDataIn,smallDataOut,penaltyRLS=10000,penaltyLasso=0.001,recompData=False,fileLoc=None,savefile=False,ext=""):
+    '''
+    The meat of the code. Takes in a penalty for both RLS and Lasso along with the Data to fit a model. Will train and save the weights as well as
+    create images and store them for future reference.
+    '''
     if(ext):
         RLSFileName = fileLoc+'data/'+ext+'/RLSData_'+str(penaltyRLS)
         LassoFileName = fileLoc+'data/'+ext+'/LassoData_'+str(penaltyLasso)
@@ -281,6 +355,9 @@ def trainData(smallDataIn,smallDataOut,penaltyRLS=10000,penaltyLasso=0.001,recom
     return [lassoRes,xRLS]
 
 def printStats(xs,err,size):
+    '''
+    used to debug the model weights
+    '''
     print('Size:' + str(size))
     print('Mean: ' + str(np.mean(xs)))
     print('StdDev: ' + str(np.std(xs)))
@@ -290,6 +367,9 @@ def printStats(xs,err,size):
     print('Mean Squared Error: ' + str(err/size))
 
 def debugData(xs,ys):
+    '''
+    used to debug data values
+    '''
     print('input')
     print(xs.shape)
     print('Mean: ' + str(np.mean(xs)))
@@ -304,6 +384,9 @@ def debugData(xs,ys):
     print('Min: ' + str(np.min(ys)))
 
 def shapeData(rawIn,rawOut,smallSize=100):
+    '''
+    used to format the binary data after reading it in
+    '''
     counter = 0
     location=0
     numRows = len(rawIn)
@@ -323,14 +406,23 @@ def shapeData(rawIn,rawOut,smallSize=100):
     return modTrain,newYT,modInSmall,modOutSmall
 
 def writeLine(filename,line):
+    '''
+    used to write our results
+    '''
     with open(filename,'a') as fd:
         fd.write(line) #https://stackoverflow.com/questions/2363731/append-new-row-to-old-csv-file-python
 
 def formRow(type,num,penalty,trainCE,trainMSE,testCE,testMSE,batch):
+    '''
+    formats a string to be written into our result file
+    '''
     finalString = str(num) +','+str(trainMSE)+','+str(trainCE)+','+str(testMSE)+','+str(testCE)+','+type+','+str(penalty)+','+str(batch)+'\n'
     return finalString
 
 def gatherTopXData(weights):
+    '''
+    implements algorithm 2 highlighted in the paper to select the most important pixels
+    '''
     counter = 0
     absWeights = np.absolute(weights.flatten())
     size = len(weights)
@@ -349,6 +441,9 @@ def gatherTopXData(weights):
     return newX
 
 def createNewSparseFullModel(weights,numbers):
+    '''
+    handles the gatherTopXData for the batch trained case
+    '''
     fullModel = np.zeros([784,10])
     for n in numbers:
         sparseWeights = np.reshape(gatherTopXData(weights[:,n]),(784,1))
@@ -356,7 +451,10 @@ def createNewSparseFullModel(weights,numbers):
     return fullModel
 
 
-
+'''
+the rest below runs the scripts and calls appropriate functions to calculate results.
+If you want to run this code on your own machine, you will have to set recompData to true and make sure to create a proper directory structure
+'''
 #np.fromfile('/home/bdvr/Documents/GitHub/AMATH563/hw1/data/t10k-images-idx3-ubyte',)
 types = ['lasso','RLS']
 numbers = [0,1,2,3,4,5,6,7,8,9]
@@ -376,8 +474,8 @@ runIndiv = True
 counter=0
 write0 = False
 recompData = False
-writeToCSV = True
-writeToSparse = True
+writeToCSV = False
+writeToSparse = False
 indivPenalties = {'lasso':0.001,'RLS':10000}
 fullPenalties = {'lasso':0.01,'RLS':1000.0}
 trainSize = len(trainIn)
@@ -467,7 +565,7 @@ for x in models:
         num = y
 
         TRCE = (1-allFullResTrain[num])
-        TRMSE = allFullMSETrain[num]/trainSize
+        TRMSE = allFullMSETrain[numight be useful https://glowingpython.blogspot.com/2012/03/solving-overdetermined-systems-with-qr.htmlm]/trainSize
         TSCE = (1-allFullResTest[num])
         TSMSE = allFullMSETest[num]/testSize
 
@@ -508,39 +606,8 @@ for x in models:
 
     counter+=1
 
-#toshape = simpleSolutionAXB(modTrainR,modTestRT,2,0.5)# TODO test this for both over and under determined systems
-#res = np.linalg.lstsq(modTrainR,modTestRT)
-#print(lstsqErr)
-#print(pinvErr)
-#xRLS = regLstSqr(trainIn,trainOut,10.0)
-#xRLS = np.reshape(xRLS,(784,10))
-#lassoRes = lasso(smallTrainIn,smallTrainOut,0)
-#lassoRes = np.reshape(lassoRes,(784,10))
-#print(lassoRes)
-#print(xRLS)
-#reshapeSols(xRLS)
-
-#reshapeSols(lassoRes)
-
-#createBar(lassoRes.flatten())
-
-#reshapeSols(lassoRes)
-
-#plotGridStyle(reshapeLeastSquareRes(res2[0]),True)
-#print(res[0][783])
-#might be useful https://glowingpython.blogspot.com/2012/03/solving-overdetermined-systems-with-qr.html
-#cvxoptAttempt(modTrain,newYT)
-#plotGridStyle(toshape)
-#print(toshape)#returns none, why? need to examine this
-#result = np.reshape(toshape,(-1,28))
-#test = np.reshape(test,(-1,5))
-#plotGridStyle(result)
-#plotGridStyle(test)
-#images are 28x28, so each entry in the images are 28 'columns' per row, with each column holding another 28 values.
-#labels in hrm 2 seem to make sense
-
 '''
 useful links:
 https://www.cvxpy.org/examples/machine_learning/ridge_regression.html
-
+might be useful https://glowingpython.blogspot.com/2012/03/solving-overdetermined-systems-with-qr.html
 '''

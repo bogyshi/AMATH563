@@ -13,11 +13,11 @@ from sklearn.linear_model import Ridge
 from scipy.sparse.linalg import lsmr
 from sklearn import linear_model
 from decimal import Decimal
-latex = False
+latex = True
 filePath = '/home/bdvr/Documents/GitHub/AMATH563/hw1/'
 
-fullRes = pd.read_csv(filePath+'results/fullresults0.csv')
-sparseRes = pd.read_csv(filePath+'results/sparseResults0.csv')
+fullRes = pd.read_csv(filePath+'results/fullresults.csv')
+sparseRes = pd.read_csv(filePath+'results/sparseResults.csv')
 
 justLasso = fullRes.loc[fullRes['model']=='lasso']
 lassoIndiv = justLasso.loc[justLasso['indiv'] == False]
@@ -42,6 +42,8 @@ newdfsparse['Test_CE'] = tempdf['Test_CE']
 if(latex):
     print(newdffull.to_latex(index=True))
     print(newdfsparse.to_latex(index=True))
+    print(fullRes.to_latex())
+    print(sparseRes.to_latex())
 else:
     print(newdffull)
     print(newdfsparse)
